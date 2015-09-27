@@ -1,0 +1,39 @@
+apply plugin: 'java'
+
+import org.apache.tools.ant.filters.*
+
+sourceCompatibility = 1.7
+version = '1.0'
+
+def mainClassName = 'hexhelp.Main'
+
+repositories {
+    mavenCentral()
+}
+
+task runnable(type: Jar, dependsOn: 'build') {
+    from files(sourceSets.main.output.classesDir)
+    from files(new File(project.buildDir, "resources" + File.separator + "main"))
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+
+    manifest {
+        attributes 'Implementation-Title': 'hexhelp',
+                'Implementation-Version': version,
+                'Built-Date': new Date(),
+                'Built-JDK': System.getProperty('java.version'),
+                'Main-Class': mainClassName
+    }
+}
+
+afterEvaluate {
+    configure(allProcessResourcesTasks()) {
+        filter(ReplaceTokens,
+                tokens: [version: version, buildDate: String.format("%tc", Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.ENGLISH))])
+    }
+}
+
+def allProcessResourcesTasks() {
+    sourceSets*.processResourcesTaskName.collect {
+        tasks[it]
+    }
+}
